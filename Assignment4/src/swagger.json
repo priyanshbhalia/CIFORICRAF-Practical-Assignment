@@ -1,0 +1,366 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Tree Monitoring REST API",
+    "description": "API Documentation for the Tree Monitoring System. Supports user signup, JWT authentication, tree record management, and summary statistics.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check if the server is up and running.",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Tree Monitoring API is healthy" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "summary": "Register a new user",
+        "description": "Create a new user account to access protected tree management operations.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "alex@cifor-icraf.org" },
+                  "password": { "type": "string", "minLength": 6, "example": "securePassword123" },
+                  "name": { "type": "string", "example": "Alex Monitor" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": { "type": "string", "example": "eyJhbGciOi..." },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid", "example": "d5cf6b..." },
+                            "email": { "type": "string", "example": "alex@cifor-icraf.org" },
+                            "name": { "type": "string", "example": "Alex Monitor" },
+                            "createdAt": { "type": "string", "format": "date-time" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or duplicate email"
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Authenticate user",
+        "description": "Logs in a user and returns a JWT token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "admin@cifor-icraf.org" },
+                  "password": { "type": "string", "example": "password123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": { "type": "string", "example": "eyJhbGciOi..." },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "email": { "type": "string", "example": "admin@cifor-icraf.org" },
+                            "name": { "type": "string", "example": "Admin Tree Monitor" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/trees": {
+      "get": {
+        "summary": "Get all trees",
+        "description": "Retrieves list of all monitored trees, sorted descending by planting date. Supports filtering.",
+        "parameters": [
+          {
+            "name": "species",
+            "in": "query",
+            "description": "Filter by species name (exact match)",
+            "required": false,
+            "schema": { "type": "string", "example": "Neem" }
+          },
+          {
+            "name": "health",
+            "in": "query",
+            "description": "Filter by health status",
+            "required": false,
+            "schema": { "type": "string", "enum": ["Good", "Fair", "Poor"], "example": "Good" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of trees",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "results": { "type": "integer", "example": 10 },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "trees": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Tree" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new tree record",
+        "description": "Record a new tree with details. Requires authentication.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["species", "latitude", "longitude", "plantingDate", "health"],
+                "properties": {
+                  "species": { "type": "string", "example": "Neem" },
+                  "latitude": { "type": "number", "minimum": -90, "maximum": 90, "example": -1.2921 },
+                  "longitude": { "type": "number", "minimum": -180, "maximum": 180, "example": 36.8219 },
+                  "plantingDate": { "type": "string", "format": "date", "example": "2023-01-15" },
+                  "health": { "type": "string", "enum": ["Good", "Fair", "Poor"], "example": "Good" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tree created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tree": { "$ref": "#/components/schemas/Tree" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          },
+          "400": {
+            "description": "Validation failed"
+          }
+        }
+      }
+    },
+    "/trees/stats": {
+      "get": {
+        "summary": "Get tree summary statistics",
+        "description": "Aggregates overall metrics, species distributions, health categories, and percentage of healthy trees.",
+        "responses": {
+          "200": {
+            "description": "Tree statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "totalTrees": { "type": "integer", "example": 10 },
+                        "speciesBreakdown": {
+                          "type": "object",
+                          "additionalProperties": { "type": "integer" },
+                          "example": { "Neem": 3, "Mango": 2, "Teak": 2 }
+                        },
+                        "healthBreakdown": {
+                          "type": "object",
+                          "properties": {
+                            "Good": { "type": "integer", "example": 6 },
+                            "Fair": { "type": "integer", "example": 2 },
+                            "Poor": { "type": "integer", "example": 2 }
+                          }
+                        },
+                        "percentageGoodHealth": { "type": "number", "example": 60 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trees/{id}": {
+      "put": {
+        "summary": "Update tree health status",
+        "description": "Change the health status of a specific tree by its ID. Requires authentication.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "UUID of the tree to update",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["health"],
+                "properties": {
+                  "health": { "type": "string", "enum": ["Good", "Fair", "Poor"], "example": "Poor" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tree health status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "tree": { "$ref": "#/components/schemas/Tree" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid authentication token"
+          },
+          "404": {
+            "description": "Tree with specified ID not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Tree": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "example": "7c9819bc-4d3a-4be2-a5e2-6ff8ef981081" },
+          "species": { "type": "string", "example": "Neem" },
+          "latitude": { "type": "number", "example": -1.2921 },
+          "longitude": { "type": "number", "example": 36.8219 },
+          "plantingDate": { "type": "string", "format": "date-time", "example": "2023-01-15T00:00:00.000Z" },
+          "health": { "type": "string", "enum": ["Good", "Fair", "Poor"], "example": "Good" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

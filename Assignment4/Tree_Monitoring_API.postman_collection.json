@@ -1,0 +1,286 @@
+{
+	"info": {
+		"_postman_id": "8c59ff0b-1934-406a-a2ff-11ea3ec6a41f",
+		"name": "Tree Monitoring API",
+		"description": "API endpoints for the CIFOR-ICRAF Tree Monitoring System assignment.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "User Registration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"monitor1@cifor-icraf.org\",\n    \"password\": \"secure_password_123\",\n    \"name\": \"Field Supervisor\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Registers a new tree monitoring staff member and returns a JWT access token."
+					},
+					"response": []
+				},
+				{
+					"name": "User Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData && jsonData.data && jsonData.data.token) {",
+									"    pm.environment.set(\"jwt_token\", jsonData.data.token);",
+									"    console.log(\"Saved JWT token to environment variable 'jwt_token'\");",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@cifor-icraf.org\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Logs in using seed credentials or registered user details. Automatically stores the returned JWT in the `jwt_token` environment variable."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Trees",
+			"item": [
+				{
+					"name": "Add Tree Record",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"species\": \"Neem\",\n    \"latitude\": -1.2921,\n    \"longitude\": 36.8219,\n    \"plantingDate\": \"2023-01-15\",\n    \"health\": \"Good\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/trees",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees"
+							]
+						},
+						"description": "Adds a new tree record to the system. Requires a valid JWT token in the Authorization header."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Trees",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trees",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees"
+							]
+						},
+						"description": "Retrieves the list of all trees sorted by planting date (descending). This endpoint is public."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Trees Filtered by Species",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trees?species=Neem",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees"
+							],
+							"query": [
+								{
+									"key": "species",
+									"value": "Neem"
+								}
+							]
+						},
+						"description": "Retrieves trees filtered by a specific species (e.g. Neem). This endpoint is public."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Trees Filtered by Health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trees?health=Good",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees"
+							],
+							"query": [
+								{
+									"key": "health",
+									"value": "Good"
+								}
+							]
+						},
+						"description": "Retrieves trees filtered by a specific health status (Good / Fair / Poor). This endpoint is public."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Tree Health",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"health\": \"Poor\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/trees/REPLACE_WITH_TREE_ID",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees",
+								"REPLACE_WITH_TREE_ID"
+							]
+						},
+						"description": "Updates the health status (Good / Fair / Poor) of a specific tree by its ID. Requires a valid JWT token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Summary Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/trees/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"trees",
+								"stats"
+							]
+						},
+						"description": "Calculates and returns summary statistics of the monitored trees. This endpoint is public."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
